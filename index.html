@@ -1,1 +1,185 @@
-Hello World
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+	<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+	<!--<link type="text/css" rel="stylesheet" href="/assets/main.css" />-->
+</head>
+<body ng-app="main" ng-controller="homeController">
+
+	<img ng-model="original" style="display:none;" />
+
+	<nav class="navbar navbar-expand-lg navbar-light bg-light">
+		<div class="form-inline my-2 my-lg-0">
+			<label>
+				<div>Upload image for processing</div>
+				<input-file
+					   ng-model="inputImageUpload"
+					   ng-change="ctrl.newImage" />
+			</label>
+		</div>
+	</nav>
+
+	<div id="mainview">
+		<div>
+			<uib-tabset active="0">
+				<uib-tab index="0" heading="Image">
+
+					<div id="destOne" style="position:relative;">
+						<div style="float:left;width:800px;">
+							<!--<uib-progressbar max="progress.max" value="progress.val">-->
+								<!--<span style="color:white; white-space:nowrap;">-->
+									<!--{{progress.value}} / {{progress.max}}-->
+								<!--</span>-->
+							<!--</uib-progressbar>-->
+
+							<div class="b-dest-preview"
+								 ng-drop="true"
+								 ng-drop-success="console.log('dropped');"
+							>
+
+                                <main-image
+                                        class="b-dest-preview--image"
+                                        style="width: 100%;"
+                                        ng-model="ctrl.layerOriginalImage"></main-image>
+
+                                <layer-canvas class="b-dest-preview--canvas"
+                                              style="width: 100%;"
+                                              ng-model="ctrl.layerFringes"
+                                              ></layer-canvas>
+
+								<layer-canvas class="b-dest-preview--canvas"
+											  style="width: 100%"
+											  ng-model="ctrl.layerFringeUnions"
+								></layer-canvas>
+
+								<layer-canvas class="b-dest-preview--canvas"
+											  style="width: 100%"
+											  ng-model="ctrl.layerMarkedFringes"
+											  ></layer-canvas>
+                                <layer-canvas class="b-dest-preview--canvas"
+                                              style="width: 100%;"
+                                              ng-mousemove="ctrl.onMouseMove($event)"
+                                              ng-click="ctrl.onClick($event)"
+                                              ng-model="ctrl.layerFringePath"></layer-canvas>
+								<center-coord data-allow-transform="true"
+										ng-model="ctrl.systemCoord.center"
+										ng-drag="true"
+										ng-drag-data="ctrl.systemCoord.center"
+										ng-drag-stop="ctrl.onDragComplete($data,$event)"
+										ng-drag-success="ctrl.onDragComplete($data,$event)"
+								></center-coord>
+							</div>
+						</div>
+
+						<div style="float:left;width:400px;overflow:hidden;margin:10px;">
+
+							<div class="coords">(<span ng-bind="ctrl.currentCoordinates.x"></span>, <span ng-bind="ctrl.currentCoordinates.y"></span>) </div>
+
+							<form>
+								<legend>Размеры образца</legend>
+
+								<div class="b-form-dimensions">
+
+									<div class="form-group">
+										<label>Width:</label>
+										<input type="hidden" class="minX" value="0" />
+										<input type="text" class="maxX" ng-value="ctrl.width" />
+									</div>
+
+									<div class="form-group">
+										<input type="hidden" class="minY" value="0" />
+										<label>Height</label>
+										<input type="text" class="maxY" ng-value="ctrl.height" ng-readonly="1"/>
+									</div>
+
+								</div>
+
+								<div class="form-check">
+									<label class="form-check-label">
+										<input type="checkbox"
+											   class="form-check-input"
+											   value="1"
+											   checked="checked"
+											   onchange="$('#destOne').find('img:first').toggle('fast');" />
+										original
+									</label>
+								</div>
+
+								<div class="form-check">
+									<label class="form-check-label">
+										<input type="checkbox"
+											   class="form-check-input"
+											   value="1"
+											   checked="checked"
+											   onchange="$('#destOne').find('canvas:first').toggle('fast');" />
+										layer fringes
+									</label>
+								</div>
+
+								<div class="btn-group" data-toggle="buttons">
+									<label class="btn btn-primary">
+										<input type="radio" name="store" ng-click="original.src = 'images/210.jpg'" checked />
+										<img src="images/210.jpg" width="40" height="40" />
+									</label>
+
+									<label class="btn btn-primary">
+										<input type="radio" name="store" ng-click="original.src = 'images/p01-135.jpg'" />
+										<img src="images/p01-135.jpg" width="40" height="40" />
+									</label>
+
+									<label class="btn btn-primary">
+										<input type="radio" name="store" ng-click="original.src = 'images/lr13t-8.jpg'" />
+										<img src="images/lr13t-8.jpg" width="40" height="40" />
+									</label>
+								</div>
+
+								<button class="btn btn-primary"
+										ng-click="ctrl.addFringeUnion()">
+									Save As Fringe Union
+								</button>
+
+								<br />
+
+								<div>
+									<ul>
+										<li ng-repeat="fringeCollection in ctrl.fringeUnions()">
+											<div style="display:inline-block;width: 24px;background:{{ fringeCollection.color }}">&nbsp;</div>
+											N{{ fringeCollection.number }}
+										</li>
+									</ul>
+								</div>
+
+								<br />
+
+								<button class="btn"
+										ng-show="ctrl.fringeUnions().length"
+										ng-click="ctrl.saveFringeUnionsToFile()">
+									Save fringe unions to file
+								</button>
+						</div>
+					</div>
+
+					<div style="clear: both;"></div>
+
+                </uib-tab>
+
+				<uib-tab index="1" heading="Fringes as text">
+					<form>
+                        <a href="#" id="download-fringes-txt">Download</a>
+						<div class="form-group">
+							<label for="js-input-branches-preview">Preview coordinates of branches</label>
+							<textarea class="form-control" id="js-input-branches-preview" rows="20"></textarea>
+						</div>
+					</form>
+				</uib-tab>
+            </uib-tabset>
+		</div>
+
+	</div>
+
+	<script src="assets/main.js"></script>
+	<script src="/webpack-dev-server.js"></script>
+</body>
+</html>
