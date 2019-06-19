@@ -58,10 +58,15 @@
 											  style="width: 100%"
 											  ng-model="ctrl.layerMarkedFringes"
 											  ></layer-canvas>
+								<layer-canvas class="b-dest-preview--canvas"
+											  ng-model="ctrl.layerDimensions"></layer-canvas>
                                 <layer-canvas class="b-dest-preview--canvas"
                                               style="width: 100%;"
                                               ng-mousemove="ctrl.onMouseMove($event)"
                                               ng-click="ctrl.onClick($event)"
+											  ng-mousedown="ctrl.onMouseDown($event)"
+											  ng-mouseup="ctrl.onMouseUp($event)"
+											  ng-contextmenu="null"
                                               ng-model="ctrl.layerFringePath"></layer-canvas>
 								<center-coord data-allow-transform="true"
 										ng-model="ctrl.systemCoord.center"
@@ -75,7 +80,11 @@
 
 						<div style="float:left;width:400px;overflow:hidden;margin:10px;">
 
-							<div class="coords">(<span ng-bind="ctrl.currentCoordinates.x"></span>, <span ng-bind="ctrl.currentCoordinates.y"></span>) </div>
+							<div class="coords">
+								(<span ng-bind="ctrl.currentCoordinates.x"></span>, <span ng-bind="ctrl.currentCoordinates.y"></span>)
+								<br />
+								(<span ng-bind="ctrl.currentCoordinates.sx"></span>, <span ng-bind="ctrl.currentCoordinates.sy"></span>)
+							</div>
 
 							<form>
 								<legend>Размеры образца</legend>
