@@ -4350,184 +4350,181 @@ function updateLink (link, options, obj) {
 Object.defineProperty(exports, "__esModule", {
     value: true
 });
-exports.CanvasModel = undefined;
 
-var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
+var _slicedToArray = function () { function sliceIterator(arr, i) { var _arr = []; var _n = true; var _d = false; var _e = undefined; try { for (var _i = arr[Symbol.iterator](), _s; !(_n = (_s = _i.next()).done); _n = true) { _arr.push(_s.value); if (i && _arr.length === i) break; } } catch (err) { _d = true; _e = err; } finally { try { if (!_n && _i["return"]) _i["return"](); } finally { if (_d) throw _e; } } return _arr; } return function (arr, i) { if (Array.isArray(arr)) { return arr; } else if (Symbol.iterator in Object(arr)) { return sliceIterator(arr, i); } else { throw new TypeError("Invalid attempt to destructure non-iterable instance"); } }; }();
 
-var _matrix = __webpack_require__(92);
+var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }(); // Отрезок полосы
+
+
+var _vector = __webpack_require__(90);
+
+var _vector2 = _interopRequireDefault(_vector);
+
+var _point = __webpack_require__(91);
+
+var _point2 = _interopRequireDefault(_point);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
-var CanvasModel = exports.CanvasModel = function () {
-    function CanvasModel(width, height) {
-        _classCallCheck(this, CanvasModel);
+var FringeModel = function () {
+    function FringeModel(pointArray) {
+        var _this = this;
 
-        if (height) {
-            this.init(width, height);
+        _classCallCheck(this, FringeModel);
+
+        this.ids = [];
+        this.points = [];
+        this.lineEnds = false;
+
+        if (pointArray && pointArray.length) {
+            pointArray.forEach(function (point) {
+                return _this.addPoint(point);
+            });
         }
     }
 
-    _createClass(CanvasModel, [{
-        key: 'init',
-        value: function init(width, height, val) {
-            this.width = width;
-            this.height = height;
-            this.data = new _matrix.MatrixModel(width, height, val);
-        }
-    }, {
-        key: 'get',
-        value: function get(x, y) {
-            if (typeof this.data[x] === 'undefined' || typeof this.data[x][y] === 'undefined') {
-                return undefined;
-            }
+    _createClass(FringeModel, [{
+        key: "addPoint",
+        value: function addPoint(point) {
+            var _ref = typeof point === 'string' ? point.split(':') : point,
+                _ref2 = _slicedToArray(_ref, 2),
+                x = _ref2[0],
+                y = _ref2[1];
 
-            return this.data[x][y];
+            this.ids.push(x + ':' + y);
+            this.points.push([x * 1, y * 1]);
+            this.lineEnds = false;
         }
-    }, {
-        key: 'set',
-        value: function set(x, y, val) {
-            if (x < 0 || y < 0 || x >= this.width || y >= this.height) {
-                return undefined;
-            }
 
-            this.data[x][y] = Math.round(val);
+        // Callback([x, y], 'x:y')
 
-            return this.data[x][y];
-        }
     }, {
-        key: 'getRow',
-        value: function getRow(y) {
-            var row = new Array(this.width);
+        key: "map",
+        value: function map(callback) {
+            var _this2 = this;
 
-            for (var x = 0; x < this.width; x++) {
-                row[x] = this.data[x][y];
-            }
+            return this.points.map(function (point, key) {
+                return callback(point, _this2.ids[key]);
+            });
+        }
+    }, {
+        key: "indexOf",
+        value: function indexOf(point) {
+            var wanted = typeof point === 'string' ? point : point[0] + ":" + point[1];
 
-            return row;
+            return this.ids.indexOf(wanted);
         }
     }, {
-        key: 'setRow',
-        value: function setRow(y, row) {
-            for (var x = 0; x < this.width; x++) {
-                this.data[x][y] = row[x];
-            }
-        }
-    }, {
-        key: 'getColumn',
-        value: function getColumn(x) {
-            return this.data[x];
-        }
-    }, {
-        key: 'setColumn',
-        value: function setColumn(x, column) {
-            this.data[x] = column.slice(0, this.height);
-        }
-    }, {
-        key: 'luma',
-        value: function luma(val) {
-            return Math.round(val[0] * 0.299 + val[1] * 0.587 + val[2] * 0.114);
-        }
-    }, {
-        key: 'toCanvas',
-        value: function toCanvas() {
-            var canvas = document.createElement('canvas');
-            canvas.width = this.width;
-            canvas.height = this.height;
-            var data = canvas.getContext('2d').getImageData(0, 0, this.width, this.height);
+        key: "compress",
+        value: function compress(fringeOrder) {
+            // проредим точки. убрав одинаковые x и отдельно одинаковые y
+            var arr = [],
+                xAcc = {},
+                yAcc = {};
 
-            var offset = void 0;
+            this.points.forEach(function (_ref3) {
+                var _ref4 = _slicedToArray(_ref3, 2),
+                    x = _ref4[0],
+                    y = _ref4[1];
 
-            for (var x = 0; x < canvas.width; x++) {
-                for (var y = 0; y < canvas.height; y++) {
-                    offset = (x + y * canvas.width) * 4;
-                    data.data[offset] = this.data[x][y];
-                    data.data[offset + 1] = this.data[x][y];
-                    data.data[offset + 2] = this.data[x][y];
-                    data.data[offset + 3] = 255;
+                if (!xAcc[x] && !yAcc[y]) {
+                    xAcc[x] = y;
+                    yAcc[y] = x;
+                    arr.push([x, y]);
                 }
-            }
+            });
 
-            canvas.getContext('2d').putImageData(data, 0, 0);
+            return typeof fringeOrder === 'undefined' ? arr.map(function (_ref5) {
+                var _ref6 = _slicedToArray(_ref5, 2),
+                    x = _ref6[0],
+                    y = _ref6[1];
 
-            return canvas;
+                return '{' + (x + "," + y) + '}';
+            }) : arr.map(function (_ref7) {
+                var _ref8 = _slicedToArray(_ref7, 2),
+                    x = _ref8[0],
+                    y = _ref8[1];
+
+                return '{' + (fringeOrder + "," + x + "," + y) + '}';
+            });
         }
     }, {
-        key: 'getCanvasData',
-        value: function getCanvasData() {
-            var canvas = document.createElement('canvas');
-            canvas.width = this.width;
-            canvas.height = this.height;
-            var data = canvas.getContext('2d').getImageData(0, 0, this.width, this.height);
+        key: "toString",
+        value: function toString(fringeOrder) {
+            return typeof fringeOrder === 'undefined' ? this.dump(function (_ref9) {
+                var _ref10 = _slicedToArray(_ref9, 2),
+                    x = _ref10[0],
+                    y = _ref10[1];
 
-            var offset = void 0;
+                return '{' + (x + "," + y) + '}';
+            }) : this.dump(function (_ref11) {
+                var _ref12 = _slicedToArray(_ref11, 2),
+                    x = _ref12[0],
+                    y = _ref12[1];
 
-            for (var x = 0; x < canvas.width; x++) {
-                for (var y = 0; y < canvas.height; y++) {
-                    offset = (x + y * canvas.height) * 4;
-                    data.data[offset] = this.data[x][y];
-                    data.data[offset + 1] = this.data[x][y];
-                    data.data[offset + 2] = this.data[x][y];
-                    data.data[offset + 3] = 255;
-                }
-            }
-
-            return data;
-        }
-    }], [{
-        key: 'fromCanvas',
-        value: function fromCanvas(canvas) {
-            var res = new CanvasModel(canvas.width, canvas.height);
-
-            var src = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height);
-
-            var offset = void 0;
-
-            for (var x = 0; x < canvas.width; x++) {
-                for (var y = 0; y < canvas.height; y++) {
-                    offset = (x + y * canvas.width) * 4;
-                    res.set(x, y, res.luma([src.data[offset], src.data[offset + 1], src.data[offset + 2], src.data[offset + 3]]));
-                }
-            }
-
-            return res;
+                return '{' + (fringeOrder + "," + x + "," + y) + '}';
+            });
         }
     }, {
-        key: 'applyMatrixToCanvas',
-        value: function applyMatrixToCanvas(matrix, canvas) {
-            var scale = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : 1;
+        key: "dump",
+        value: function dump(callback) {
+            var _this3 = this;
 
-            var context = canvas.getContext('2d');
+            var separator = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : ',';
 
-            var imageData = context.createImageData(matrix.width, matrix.height);
+            return this.points.map(function (_ref13, key) {
+                var _ref14 = _slicedToArray(_ref13, 2),
+                    x = _ref14[0],
+                    y = _ref14[1];
 
-            canvas.height = matrix.height;
-            canvas.width = matrix.width;
-
-            var i = 0;
-
-            var callback = function callback(x, y, val, i) {
-                val = parseInt(val);
-                i = i * 4;
-                if (val < 250) {
-                    imageData.data[i] = val;
-                    imageData.data[i + 1] = 255;
-                    imageData.data[i + 2] = val;
-                    imageData.data[i + 3] = 255;
-                }
-            };
-
-            for (var y = 0, maxY = matrix.height; y < maxY; y++) {
-                for (var x = 0, maxX = matrix.width; x < maxX; x++) {
-                    callback(x, y, matrix[x][y], i++);
-                }
+                return callback.apply(_this3, [[x, y], key]);
+            }).join(separator);
+        }
+    }, {
+        key: "ends",
+        value: function ends() {
+            if (false === this.lineEnds) {
+                this.lineEnds = this.calculateVectors();
             }
 
-            canvas.getContext('2d').putImageData(imageData, 0, 0);
+            return this.lineEnds;
+        }
+    }, {
+        key: "calculateVectors",
+        value: function calculateVectors() {
+            var size = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : 6;
+
+            var a_begin = this.points[0];
+            var a_end = a_begin;
+
+            var b_begin = this.points[this.points.length - 1];
+            var b_end = b_begin;
+
+            if (this.points.length < size * 2) {
+                a_end = this.points[Math.floor(this.points.length / 2)];
+                b_end = a_end;
+            } else {
+                a_end = this.points[size];
+                b_end = this.points[this.points.length - size];
+            }
+
+            // Вектора концов полосы, направленных по касательной
+            return [{
+                point: new _point2.default(a_begin[0], a_begin[1]),
+                vector: new _vector2.default(a_begin[0] - a_end[0], a_begin[1] - a_end[1])
+            }, {
+                point: new _point2.default(b_begin[0], b_begin[1]),
+                vector: new _vector2.default(b_begin[0] - b_end[0], b_begin[1] - b_end[1])
+            }];
         }
     }]);
 
-    return CanvasModel;
+    return FringeModel;
 }();
+
+exports.default = FringeModel;
 
 /***/ }),
 /* 131 */
@@ -9869,11 +9866,11 @@ app.controller('homeController', ['$scope', '$timeout', 'fringeStorageService', 
 
 // Services
 
-.service('fringeStorageService', __webpack_require__(353).default).service('fringeCollectionService', __webpack_require__(354).default).service('downloadService', __webpack_require__(356).default)
+.service('fringeStorageService', __webpack_require__(354).default).service('fringeCollectionService', __webpack_require__(355).default).service('downloadService', __webpack_require__(357).default)
 
 // Directives
 
-.directive('centerCoord', __webpack_require__(357).default).directive('layerCanvas', __webpack_require__(358).default).directive('inputFile', __webpack_require__(359).default).directive('mainImage', __webpack_require__(360).default);
+.directive('centerCoord', __webpack_require__(358).default).directive('layerCanvas', __webpack_require__(359).default).directive('inputFile', __webpack_require__(360).default).directive('mainImage', __webpack_require__(361).default);
 
 /***/ }),
 /* 335 */
@@ -52963,9 +52960,9 @@ var _createClass = function () { function defineProperties(target, props) { for 
 
 var _tracing = __webpack_require__(346);
 
-var _picture = __webpack_require__(348);
+var _picture = __webpack_require__(347);
 
-var _canvas = __webpack_require__(130);
+var _canvas = __webpack_require__(348);
 
 var _thinner = __webpack_require__(349);
 
@@ -52983,6 +52980,8 @@ var _vector = __webpack_require__(90);
 
 var _vector2 = _interopRequireDefault(_vector);
 
+var _tracingWave = __webpack_require__(352);
+
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
@@ -52991,7 +52990,7 @@ function _possibleConstructorReturn(self, call) { if (!self) { throw new Referen
 
 function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
 
-var jquery = __webpack_require__(352);
+var jquery = __webpack_require__(353);
 
 document.$ = jquery;
 
@@ -53020,6 +53019,12 @@ var HomeController = function (_AbstractController) {
             $scope.ctrl = {
                 height: 0,
                 width: 0,
+                dim: {
+                    scale: 1,
+                    o: { x: 0, y: 0 },
+                    p1: null,
+                    p2: null
+                },
                 clickMode: 'selectFringe',
                 currentCoordinates: { x: 'x', y: 'y' },
                 onDragComplete: function onDragComplete(data, e) {
@@ -53046,6 +53051,40 @@ var HomeController = function (_AbstractController) {
                 onMouseMove: function onMouseMove(event) {
                     _this2.drawFringePath.apply(_this2, [event]);
                     _this2.showCurrentCoordinates.apply(_this2, [event]);
+                },
+                onMouseDown: function onMouseDown(event) {
+                    var original = _this2.original;
+                    var layer = $scope.ctrl.layerDimensions;
+                    layer.canvas.height = original.height;
+                    layer.canvas.width = original.width;
+                    var ctx = layer.context;
+                    var x = event.offsetX,
+                        y = event.offsetY;
+
+                    if (event.button === 2) {
+                        $scope.ctrl.dim.p1 = { x: x, y: y };
+                        $scope.ctrl.dim.p2 = null;
+                        return false;
+                    }
+                    _this2.drawDimensions();
+                },
+                onMouseUp: function onMouseUp(event) {
+                    var original = _this2.original;
+                    var layer = $scope.ctrl.layerDimensions;
+                    layer.canvas.height = original.height;
+                    layer.canvas.width = original.width;
+                    var ctx = layer.context;
+                    var x = event.offsetX,
+                        y = event.offsetY;
+
+                    if (event.button === 0) {
+                        $scope.ctrl.dim.o = { x: x, y: y };
+                    } else if (event.button === 2) {
+                        $scope.ctrl.dim.p2 = { x: x, y: y };
+                        $scope.ctrl.dim.scale = Math.sqrt(Math.pow($scope.ctrl.dim.p1.x - $scope.ctrl.dim.p2.x, 2) + Math.pow($scope.ctrl.dim.p1.y - $scope.ctrl.dim.p2.y, 2));
+                    }
+                    _this2.drawDimensions();
+                    return false;
                 },
                 onClick: function onClick(event) {
                     _this2.selectedFringe && _this2.markFringe.apply(_this2, [event]);
@@ -53077,10 +53116,46 @@ var HomeController = function (_AbstractController) {
             };
 
             this.original.src = 'images/210.jpg';
+            // this.original.src = 'images/p01-135.jpg';
 
             $scope.original = this.original;
 
             this.marked = [];
+        }
+    }, {
+        key: "drawDimensions",
+        value: function drawDimensions() {
+            var $scope = this.di.$scope;
+
+            var original = this.original;
+            var layer = $scope.ctrl.layerDimensions;
+            layer.canvas.height = original.height;
+            layer.canvas.width = original.width;
+            var ctx = layer.context;
+            var dim = $scope.ctrl.dim;
+
+            ctx.clearRect(0, 0, layer.canvas.width, layer.canvas.height);
+
+            ctx.strokeStyle = 'rgb(255, 0, 0)';
+
+            if (dim.p1) {
+                ctx.moveTo(dim.p1.x, dim.p1.y);
+                ctx.arc(dim.p1.x, dim.p1.y, 1, 0, 2 * Math.PI);
+            }
+
+            if (dim.p2) {
+                ctx.moveTo(dim.p2.x, dim.p2.y);
+                ctx.arc(dim.p2.x, dim.p2.y, 1, 0, 2 * Math.PI);
+                ctx.moveTo(dim.p1.x, dim.p1.y);
+                ctx.lineTo(dim.p2.x, dim.p2.y);
+            }
+
+            if (dim.o) {
+                ctx.moveTo(dim.o.x, dim.o.y);
+                ctx.arc(dim.o.x, dim.o.y, 1, 0, 2 * Math.PI);
+            }
+
+            ctx.stroke();
         }
     }, {
         key: "onLoadOriginal",
@@ -53276,6 +53351,10 @@ var HomeController = function (_AbstractController) {
 
             $scope.ctrl.currentCoordinates.x = x;
             $scope.ctrl.currentCoordinates.y = $scope.ctrl.height - y;
+
+            var scale2 = $scope.ctrl.dim.scale > 0 ? 1 / $scope.ctrl.dim.scale / scale : 1;
+            $scope.ctrl.currentCoordinates.sx = (x - $scope.ctrl.dim.o.x * scale) * scale2;
+            $scope.ctrl.currentCoordinates.sy = ($scope.ctrl.currentCoordinates.y - $scope.ctrl.height + $scope.ctrl.dim.o.y * scale) * scale2;
         }
     }, {
         key: "drawFringePath",
@@ -53373,7 +53452,7 @@ var HomeController = function (_AbstractController) {
 
             var p = new _picture.PictureModel();
 
-            var newCanvas = p.toCanvas(p.runPipeline([{ name: 'identity', args: [p.getPixels(original)] }, { name: 'gaussianBlur', args: [3] }, { name: 'gaussianBlur', args: [13] }]
+            var newCanvas = p.toCanvas(p.runPipeline([{ name: 'identity', args: [p.getPixels(original)] }, { name: 'grayscale', args: [] }, { name: 'median', args: [7] }, { name: 'gaussianBlur', args: [3] }, { name: 'gaussianBlur', args: [13] }]
             // {name:'erode', args:[]},
             ));
 
@@ -53394,18 +53473,24 @@ var HomeController = function (_AbstractController) {
             var skeletonAction = new _skeleton.SkeletonAction();
             dst = skeletonAction.run(dst);
 
-            var thinAction = new _thinner.ThinnerAction();
-            dst = thinAction.thinckize(dst, 'left');
-            dst = thinAction.thinckize(dst, 'up');
-            dst = thinAction.thinckize(dst, 'right');
-            dst = thinAction.thinckize(dst, 'down');
+            // const thinAction = new ThinnerAction();
+            // dst = thinAction.thinckize(dst, 'left');
+            // dst = thinAction.thinckize(dst, 'up');
+            // dst = thinAction.thinckize(dst, 'right');
+            // dst = thinAction.thinckize(dst, 'down');
 
-            var tracingAction = new _tracing.TracingAction();
-            tracingAction.threshold(254).run(dst, function (fringe) {
+            // const tracingAction = new TracingAction();
+            var tracingWaveAction = new _tracingWave.TracingWaveAction();
+            tracingWaveAction
+            //tracingAction
+            .threshold(254).run(dst, function (fringe) {
                 return fringeStorageService.push(fringe);
             });
 
             _canvas.CanvasModel.applyMatrixToCanvas(dst, $scope.ctrl.layerFringes.canvas, 0.5);
+
+            // var w=window.open('about:blank','image from canvas');
+            // w.document.write("<img src='"+$scope.ctrl.layerFringes.canvas.toDataURL("image/png")+"' alt='from canvas'/>");
         }
     }]);
 
@@ -53431,7 +53516,7 @@ var _slicedToArray = function () { function sliceIterator(arr, i) { var _arr = [
 
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
-var _fringe = __webpack_require__(347);
+var _fringe = __webpack_require__(130);
 
 var _fringe2 = _interopRequireDefault(_fringe);
 
@@ -53604,192 +53689,6 @@ Object.defineProperty(exports, "__esModule", {
     value: true
 });
 
-var _slicedToArray = function () { function sliceIterator(arr, i) { var _arr = []; var _n = true; var _d = false; var _e = undefined; try { for (var _i = arr[Symbol.iterator](), _s; !(_n = (_s = _i.next()).done); _n = true) { _arr.push(_s.value); if (i && _arr.length === i) break; } } catch (err) { _d = true; _e = err; } finally { try { if (!_n && _i["return"]) _i["return"](); } finally { if (_d) throw _e; } } return _arr; } return function (arr, i) { if (Array.isArray(arr)) { return arr; } else if (Symbol.iterator in Object(arr)) { return sliceIterator(arr, i); } else { throw new TypeError("Invalid attempt to destructure non-iterable instance"); } }; }();
-
-var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }(); // Отрезок полосы
-
-
-var _vector = __webpack_require__(90);
-
-var _vector2 = _interopRequireDefault(_vector);
-
-var _point = __webpack_require__(91);
-
-var _point2 = _interopRequireDefault(_point);
-
-function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
-
-function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
-
-var FringeModel = function () {
-    function FringeModel(pointArray) {
-        var _this = this;
-
-        _classCallCheck(this, FringeModel);
-
-        this.ids = [];
-        this.points = [];
-        this.lineEnds = false;
-
-        if (pointArray && pointArray.length) {
-            pointArray.forEach(function (point) {
-                return _this.addPoint(point);
-            });
-        }
-    }
-
-    _createClass(FringeModel, [{
-        key: "addPoint",
-        value: function addPoint(point) {
-            var _ref = typeof point === 'string' ? point.split(':') : point,
-                _ref2 = _slicedToArray(_ref, 2),
-                x = _ref2[0],
-                y = _ref2[1];
-
-            this.ids.push(x + ':' + y);
-            this.points.push([x * 1, y * 1]);
-            this.lineEnds = false;
-        }
-
-        // Callback([x, y], 'x:y')
-
-    }, {
-        key: "map",
-        value: function map(callback) {
-            var _this2 = this;
-
-            return this.points.map(function (point, key) {
-                return callback(point, _this2.ids[key]);
-            });
-        }
-    }, {
-        key: "indexOf",
-        value: function indexOf(point) {
-            var wanted = typeof point === 'string' ? point : point[0] + ":" + point[1];
-
-            return this.ids.indexOf(wanted);
-        }
-    }, {
-        key: "compress",
-        value: function compress(fringeOrder) {
-            // проредим точки. убрав одинаковые x и отдельно одинаковые y
-            var arr = [],
-                xAcc = {},
-                yAcc = {};
-
-            this.points.forEach(function (_ref3) {
-                var _ref4 = _slicedToArray(_ref3, 2),
-                    x = _ref4[0],
-                    y = _ref4[1];
-
-                if (!xAcc[x] && !yAcc[y]) {
-                    xAcc[x] = y;
-                    yAcc[y] = x;
-                    arr.push([x, y]);
-                }
-            });
-
-            return typeof fringeOrder === 'undefined' ? arr.map(function (_ref5) {
-                var _ref6 = _slicedToArray(_ref5, 2),
-                    x = _ref6[0],
-                    y = _ref6[1];
-
-                return '{' + (x + "," + y) + '}';
-            }) : arr.map(function (_ref7) {
-                var _ref8 = _slicedToArray(_ref7, 2),
-                    x = _ref8[0],
-                    y = _ref8[1];
-
-                return '{' + (fringeOrder + "," + x + "," + y) + '}';
-            });
-        }
-    }, {
-        key: "toString",
-        value: function toString(fringeOrder) {
-            return typeof fringeOrder === 'undefined' ? this.dump(function (_ref9) {
-                var _ref10 = _slicedToArray(_ref9, 2),
-                    x = _ref10[0],
-                    y = _ref10[1];
-
-                return '{' + (x + "," + y) + '}';
-            }) : this.dump(function (_ref11) {
-                var _ref12 = _slicedToArray(_ref11, 2),
-                    x = _ref12[0],
-                    y = _ref12[1];
-
-                return '{' + (fringeOrder + "," + x + "," + y) + '}';
-            });
-        }
-    }, {
-        key: "dump",
-        value: function dump(callback) {
-            var _this3 = this;
-
-            var separator = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : ',';
-
-            return this.points.map(function (_ref13, key) {
-                var _ref14 = _slicedToArray(_ref13, 2),
-                    x = _ref14[0],
-                    y = _ref14[1];
-
-                return callback.apply(_this3, [[x, y], key]);
-            }).join(separator);
-        }
-    }, {
-        key: "ends",
-        value: function ends() {
-            if (false === this.lineEnds) {
-                this.lineEnds = this.calculateVectors();
-            }
-
-            return this.lineEnds;
-        }
-    }, {
-        key: "calculateVectors",
-        value: function calculateVectors() {
-            var size = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : 6;
-
-            var a_begin = this.points[0];
-            var a_end = a_begin;
-
-            var b_begin = this.points[this.points.length - 1];
-            var b_end = b_begin;
-
-            if (this.points.length < size * 2) {
-                a_end = this.points[Math.floor(this.points.length / 2)];
-                b_end = a_end;
-            } else {
-                a_end = this.points[size];
-                b_end = this.points[this.points.length - size];
-            }
-
-            // Вектора концов полосы, направленных по касательной
-            return [{
-                point: new _point2.default(a_begin[0], a_begin[1]),
-                vector: new _vector2.default(a_begin[0] - a_end[0], a_begin[1] - a_end[1])
-            }, {
-                point: new _point2.default(b_begin[0], b_begin[1]),
-                vector: new _vector2.default(b_begin[0] - b_end[0], b_begin[1] - b_end[1])
-            }];
-        }
-    }]);
-
-    return FringeModel;
-}();
-
-exports.default = FringeModel;
-
-/***/ }),
-/* 348 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-
-Object.defineProperty(exports, "__esModule", {
-    value: true
-});
-
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
@@ -53835,7 +53734,8 @@ var PictureModel = function () {
     }, {
         key: 'getPixels',
         value: function getPixels(img) {
-            var c, ctx;
+            var c = void 0,
+                ctx = void 0;
             if (img.getContext) {
                 c = img;
                 try {
@@ -53910,9 +53810,9 @@ var PictureModel = function () {
     }, {
         key: 'identity',
         value: function identity(pixels, args) {
-            var output = this.createImageData(pixels.width, pixels.height);
-            var dst = output.data;
-            var d = pixels.data;
+            var output = this.createImageData(pixels.width, pixels.height),
+                dst = output.data,
+                d = pixels.data;
             for (var i = 0; i < d.length; i++) {
                 dst[i] = d[i];
             }
@@ -53921,11 +53821,11 @@ var PictureModel = function () {
     }, {
         key: 'horizontalFlip',
         value: function horizontalFlip(pixels) {
-            var output = this.createImageData(pixels.width, pixels.height);
-            var w = pixels.width;
-            var h = pixels.height;
-            var dst = output.data;
-            var d = pixels.data;
+            var output = this.createImageData(pixels.width, pixels.height),
+                w = pixels.width,
+                h = pixels.height,
+                dst = output.data,
+                d = pixels.data;
             for (var y = 0; y < h; y++) {
                 for (var x = 0; x < w; x++) {
                     var off = (y * w + x) * 4;
@@ -54151,6 +54051,57 @@ var PictureModel = function () {
                     dst[dstOff + 1] = g;
                     dst[dstOff + 2] = b;
                     dst[dstOff + 3] = a + alphaFac * (255 - a);
+                }
+            }
+            return output;
+        }
+    }, {
+        key: 'median',
+        value: function median(pixels, diametr, opaque) {
+            var side = Math.round(diametr);
+            var halfSide = Math.floor(side / 2);
+            var median = Math.floor(diametr * diametr / 2);
+
+            var src = pixels.data;
+            var sw = pixels.width;
+            var sh = pixels.height;
+
+            var w = sw;
+            var h = sh;
+            var output = this.createImageData(w, h);
+            var dst = output.data;
+
+            var alphaFac = opaque ? 1 : 0;
+
+            for (var y = 0; y < h; y++) {
+                for (var x = 0; x < w; x++) {
+                    var sy = y;
+                    var sx = x;
+                    var dstOff = (y * w + x) * 4;
+                    var intensivity = [];
+                    for (var cy = 0; cy < side; cy++) {
+                        for (var cx = 0; cx < side; cx++) {
+                            var scy = Math.min(sh - 1, Math.max(0, sy + cy - halfSide));
+                            var scx = Math.min(sw - 1, Math.max(0, sx + cx - halfSide));
+                            var _srcOff = (scy * sw + scx) * 4;
+                            var r = src[_srcOff];
+                            var g = src[_srcOff + 1];
+                            var b = src[_srcOff + 2];
+                            var a = src[_srcOff + 3];
+                            intensivity.push({
+                                weight: 0.299 * r + 0.587 * g + 0.114 * b,
+                                offset: _srcOff
+                            });
+                        }
+                    }
+                    intensivity = intensivity.sort(function (a, b) {
+                        return a.weight - b.weight;
+                    });
+                    var srcOff = intensivity[median].offset;
+                    dst[dstOff] = src[srcOff];
+                    dst[dstOff + 1] = src[srcOff + 1];
+                    dst[dstOff + 2] = src[srcOff + 2];
+                    dst[dstOff + 3] = src[srcOff + 3] + alphaFac * (255 - src[srcOff + 3]);
                 }
             }
             return output;
@@ -54407,8 +54358,8 @@ var PictureModel = function () {
                 weights[i] = gx;
                 wsum += gx;
             }
-            for (var i = 0; i < weights.length; i++) {
-                weights[i] /= wsum;
+            for (var _i = 0; _i < weights.length; _i++) {
+                weights[_i] /= wsum;
             }
             return this.separableConvolve(pixels, weights, weights, false);
         }
@@ -54688,6 +54639,195 @@ var PictureModel = function () {
 exports.PictureModel = PictureModel;
 
 /***/ }),
+/* 348 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+    value: true
+});
+exports.CanvasModel = undefined;
+
+var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
+
+var _matrix = __webpack_require__(92);
+
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+var CanvasModel = exports.CanvasModel = function () {
+    function CanvasModel(width, height) {
+        _classCallCheck(this, CanvasModel);
+
+        if (height) {
+            this.init(width, height);
+        }
+    }
+
+    _createClass(CanvasModel, [{
+        key: 'init',
+        value: function init(width, height, val) {
+            this.width = width;
+            this.height = height;
+            this.data = new _matrix.MatrixModel(width, height, val);
+        }
+    }, {
+        key: 'get',
+        value: function get(x, y) {
+            if (typeof this.data[x] === 'undefined' || typeof this.data[x][y] === 'undefined') {
+                return undefined;
+            }
+
+            return this.data[x][y];
+        }
+    }, {
+        key: 'set',
+        value: function set(x, y, val) {
+            if (x < 0 || y < 0 || x >= this.width || y >= this.height) {
+                return undefined;
+            }
+
+            this.data[x][y] = Math.round(val);
+
+            return this.data[x][y];
+        }
+    }, {
+        key: 'getRow',
+        value: function getRow(y) {
+            var row = new Array(this.width);
+
+            for (var x = 0; x < this.width; x++) {
+                row[x] = this.data[x][y];
+            }
+
+            return row;
+        }
+    }, {
+        key: 'setRow',
+        value: function setRow(y, row) {
+            for (var x = 0; x < this.width; x++) {
+                this.data[x][y] = row[x];
+            }
+        }
+    }, {
+        key: 'getColumn',
+        value: function getColumn(x) {
+            return this.data[x];
+        }
+    }, {
+        key: 'setColumn',
+        value: function setColumn(x, column) {
+            this.data[x] = column.slice(0, this.height);
+        }
+    }, {
+        key: 'luma',
+        value: function luma(val) {
+            return Math.round(val[0] * 0.299 + val[1] * 0.587 + val[2] * 0.114);
+        }
+    }, {
+        key: 'toCanvas',
+        value: function toCanvas() {
+            var canvas = document.createElement('canvas');
+            canvas.width = this.width;
+            canvas.height = this.height;
+            var data = canvas.getContext('2d').getImageData(0, 0, this.width, this.height);
+
+            var offset = void 0;
+
+            for (var x = 0; x < canvas.width; x++) {
+                for (var y = 0; y < canvas.height; y++) {
+                    offset = (x + y * canvas.width) * 4;
+                    data.data[offset] = this.data[x][y];
+                    data.data[offset + 1] = this.data[x][y];
+                    data.data[offset + 2] = this.data[x][y];
+                    data.data[offset + 3] = 255;
+                }
+            }
+
+            canvas.getContext('2d').putImageData(data, 0, 0);
+
+            return canvas;
+        }
+    }, {
+        key: 'getCanvasData',
+        value: function getCanvasData() {
+            var canvas = document.createElement('canvas');
+            canvas.width = this.width;
+            canvas.height = this.height;
+            var data = canvas.getContext('2d').getImageData(0, 0, this.width, this.height);
+
+            var offset = void 0;
+
+            for (var x = 0; x < canvas.width; x++) {
+                for (var y = 0; y < canvas.height; y++) {
+                    offset = (x + y * canvas.height) * 4;
+                    data.data[offset] = this.data[x][y];
+                    data.data[offset + 1] = this.data[x][y];
+                    data.data[offset + 2] = this.data[x][y];
+                    data.data[offset + 3] = 255;
+                }
+            }
+
+            return data;
+        }
+    }], [{
+        key: 'fromCanvas',
+        value: function fromCanvas(canvas) {
+            var res = new CanvasModel(canvas.width, canvas.height);
+
+            var src = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height);
+
+            var offset = void 0;
+
+            for (var x = 0; x < canvas.width; x++) {
+                for (var y = 0; y < canvas.height; y++) {
+                    offset = (x + y * canvas.width) * 4;
+                    res.set(x, y, res.luma([src.data[offset], src.data[offset + 1], src.data[offset + 2], src.data[offset + 3]]));
+                }
+            }
+
+            return res;
+        }
+    }, {
+        key: 'applyMatrixToCanvas',
+        value: function applyMatrixToCanvas(matrix, canvas) {
+            var scale = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : 1;
+
+            var context = canvas.getContext('2d');
+
+            var imageData = context.createImageData(matrix.width, matrix.height);
+
+            canvas.height = matrix.height;
+            canvas.width = matrix.width;
+
+            var i = 0;
+
+            var callback = function callback(x, y, val, i) {
+                val = parseInt(val);
+                i = i * 4;
+                if (val < 250) {
+                    imageData.data[i] = val;
+                    imageData.data[i + 1] = 255;
+                    imageData.data[i + 2] = val;
+                    imageData.data[i + 3] = 255;
+                }
+            };
+
+            for (var y = 0, maxY = matrix.height; y < maxY; y++) {
+                for (var x = 0, maxX = matrix.width; x < maxX; x++) {
+                    callback(x, y, matrix[x][y], i++);
+                }
+            }
+
+            canvas.getContext('2d').putImageData(imageData, 0, 0);
+        }
+    }]);
+
+    return CanvasModel;
+}();
+
+/***/ }),
 /* 349 */
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -54700,8 +54840,6 @@ Object.defineProperty(exports, "__esModule", {
 exports.ThinnerAction = undefined;
 
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
-
-var _canvas = __webpack_require__(130);
 
 var _matrix = __webpack_require__(92);
 
@@ -54855,6 +54993,78 @@ var SkeletonAction = exports.SkeletonAction = function () {
             return dst;
         }
     }, {
+        key: "runAdvanced",
+        value: function runAdvanced(src) {
+            var dst = new _matrix.MatrixModel(src.width, src.height);
+
+            this.data = src;
+
+            for (var y = 0; y < src.height; y++) {
+                for (var x = 0; x < src.width; x++) {
+                    var flag = this.applyAdvancedMasks(x, y);
+                    dst[x][y] = flag ? src[x][y] : 255;
+                }
+            }
+
+            return dst;
+        }
+
+        /**
+         * Return true, when minimum found
+         */
+
+    }, {
+        key: "applyAdvancedMasks",
+        value: function applyAdvancedMasks(x, y) {
+            var g = this.pixelDiv(x, y);
+            var h = 1 / 2;
+
+            var hScan = [[[0, 0, 0, 0, 0], [0, 0, 0, 0, 0], [1, 1, 1, 1, 1], [0, 0, 0, 0, 0], [0, 0, 0, 0, 0]], [[0, 0, 0, 0, 1], [0, 0, 0, 1, 0], [0, 0, 1, 0, 0], [0, 1, 0, 0, 0], [1, 0, 0, 0, 0]], [[1, 0, 0, 0, 0], [0, 1, 0, 0, 0], [0, 0, 1, 0, 0], [0, 0, 0, 1, 0], [0, 0, 0, 0, 1]], [[0, 0, 0, 0, 0], [0, 0, 0, h, 1], [0, h, 1, h, 0], [1, h, 0, 0, 0], [0, 0, 0, 0, 0]], [[0, 0, 0, 0, 0], [1, h, 0, 0, 0], [0, h, 1, h, 0], [0, 0, 0, h, 1], [0, 0, 0, 0, 0]]];
+
+            var vScan = [[[0, 0, 1, 0, 0], [0, 0, 1, 0, 0], [0, 0, 1, 0, 0], [0, 0, 1, 0, 0], [0, 0, 1, 0, 0]], [[0, 0, 0, 1, 0], [0, 0, h, h, 0], [0, 0, 1, 0, 0], [0, h, h, 0, 0], [0, 1, 0, 0, 0]], [[0, 1, 0, 0, 0], [0, h, h, 0, 0], [0, 0, 1, 0, 0], [0, 0, h, h, 0], [0, 0, 0, 1, 0]]];
+
+            var counter = 0;
+
+            for (var n = 0; n < vScan.length; n++) {
+                var kernel = vScan[n];
+                var v = [0, 0, 0, 0, 0];
+                for (var i = 0; i < kernel.length; i++) {
+                    for (var j = 0; j < kernel[i].length; j++) {
+                        v[j] += kernel[i][j] * g(i - 2, j - 2);
+                    }
+                }
+                if (this.checkMinimum(v)) {
+                    counter++;
+                    if (counter > 1) {
+                        return true;
+                    }
+                }
+            }
+
+            for (var _n = 0; _n < vScan.length; _n++) {
+                var _kernel = vScan[_n];
+                var _v = [0, 0, 0, 0, 0];
+                for (var _i = 0; _i < _kernel.length; _i++) {
+                    for (var _j = 0; _j < _kernel[_i].length; _j++) {
+                        _v[_i] += _kernel[_i][_j] * g(_i - 2, _j - 2);
+                    }
+                }
+                if (this.checkMinimum(_v)) {
+                    counter++;
+                    if (counter > 1) {
+                        return true;
+                    }
+                }
+            }
+
+            return false;
+        }
+    }, {
+        key: "checkMinimum",
+        value: function checkMinimum(v) {
+            return v[0] > v[1] && v[1] > v[2] && v[2] < v[3] && v[3] < v[4] || v[0] > v[1] && v[1] > v[2] && v[2] === v[3] && v[3] < v[4] || v[0] > v[1] && v[1] === v[2] && v[2] < v[3] && v[3] < v[4] || v[0] > v[1] && v[1] === v[2] && v[2] === v[3] && v[3] < v[4] || v[0] === v[1] && v[1] === v[2] && v[2] === v[3] && v[3] === v[4];
+        }
+    }, {
         key: "tick",
         value: function tick() {
             var now = Date.now();
@@ -54890,29 +55100,33 @@ var SkeletonAction = exports.SkeletonAction = function () {
         key: "vertical",
         value: function vertical(x, y) {
             var g = this.pixelDiv(x, y);
+            var c = g(0, 0) + g(0, -1) + g(0, +1);
 
-            return g(0, 0) + g(0, -1) + g(0, +1) < g(-2, 1) + g(-2, 0) + g(-2, -1) && g(0, 0) + g(0, -1) + g(0, +1) < g(+2, 1) + g(+2, 0) + g(+2, -1);
+            return c < g(-2, 1) + g(-2, 0) + g(-2, -1) && c < g(+2, 1) + g(+2, 0) + g(+2, -1);
         }
     }, {
         key: "horizontal",
         value: function horizontal(x, y) {
             var g = this.pixelDiv(x, y);
+            var c = g(0, 0) + g(-1, 0) + g(+1, 0);
 
-            return g(0, 0) + g(-1, 0) + g(+1, 0) < g(-1, -2) + g(0, -2) + g(+1, -2) && g(0, 0) + g(-1, 0) + g(+1, 0) < g(-1, +2) + g(0, +2) + g(+1, +2);
+            return c < g(-1, -2) + g(0, -2) + g(+1, -2) && c < g(-1, +2) + g(0, +2) + g(+1, +2);
         }
     }, {
         key: "diagonalRightDown",
         value: function diagonalRightDown(x, y) {
             var g = this.pixelDiv(x, y);
+            var c = g(0, 0) + g(+1, -1) + g(-1, +1);
 
-            return g(0, 0) + g(+1, -1) + g(-1, +1) < g(+2, +2) + g(+2, +1) + g(+1, +2) && g(0, 0) + g(+1, -1) + g(-1, +1) < g(-2, -2) + g(-2, -1) + g(-1, -2);
+            return c < g(+2, +2) + g(+2, +1) + g(+1, +2) && c < g(-2, -2) + g(-2, -1) + g(-1, -2);
         }
     }, {
         key: "diagonalRightUp",
         value: function diagonalRightUp(x, y) {
             var g = this.pixelDiv(x, y);
+            var c = g(0, 0) + g(-1, -1) + g(+1, +1);
 
-            return g(0, 0) + g(-1, -1) + g(+1, +1) < g(+2, -2) + g(+2, -1) + g(+1, -2) && g(0, 0) + g(-1, -1) + g(+1, +1) < g(-2, +2) + g(-2, +1) + g(-1, +2);
+            return c < g(+2, -2) + g(+2, -1) + g(+1, -2) && c < g(-2, +2) + g(-2, +1) + g(-1, +2);
         }
     }]);
 
@@ -54976,6 +55190,226 @@ exports.default = AbstractController;
 
 /***/ }),
 /* 352 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+    value: true
+});
+exports.TracingWaveAction = undefined;
+
+var _slicedToArray = function () { function sliceIterator(arr, i) { var _arr = []; var _n = true; var _d = false; var _e = undefined; try { for (var _i = arr[Symbol.iterator](), _s; !(_n = (_s = _i.next()).done); _n = true) { _arr.push(_s.value); if (i && _arr.length === i) break; } } catch (err) { _d = true; _e = err; } finally { try { if (!_n && _i["return"]) _i["return"](); } finally { if (_d) throw _e; } } return _arr; } return function (arr, i) { if (Array.isArray(arr)) { return arr; } else if (Symbol.iterator in Object(arr)) { return sliceIterator(arr, i); } else { throw new TypeError("Invalid attempt to destructure non-iterable instance"); } }; }();
+
+var _extends = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; };
+
+var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
+
+var _fringe = __webpack_require__(130);
+
+var _fringe2 = _interopRequireDefault(_fringe);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+var TracingWaveAction = exports.TracingWaveAction = function () {
+    function TracingWaveAction(params) {
+        _classCallCheck(this, TracingWaveAction);
+
+        this.directions = [[[1, 0], [0, 1], [-1, 0], [0, -1]], // 4 point
+        [[1, 0], [1, 1], [0, 1], [-1, 1], [-1, 0], [-1, -1], [0, -1], [1, -1]]];
+
+        this.params = _extends({
+            threshold: 128,
+            disable4point: false
+        }, params || {});
+    }
+
+    _createClass(TracingWaveAction, [{
+        key: 'threshold',
+        value: function threshold(val) {
+            if (typeof val === 'undefined') {
+                return this.params.threshold;
+            }
+            this.params.threshold = val;
+            return this;
+        }
+    }, {
+        key: 'isFringe',
+        value: function isFringe(x, y) {
+            if (this.data[x] && this.data[x][y]) {
+                return this.data[x][y] < this.params.threshold;
+            }
+            return false;
+        }
+    }, {
+        key: 'markUsed',
+        value: function markUsed(x, y) {
+            this.used.push(x + ':' + y);
+        }
+    }, {
+        key: 'isUsed',
+        value: function isUsed(x, y) {
+            return this.used.indexOf(x + ':' + y) !== -1;
+        }
+    }, {
+        key: 'getPoint',
+        value: function getPoint(x, y) {
+            if (typeof this.points === 'undefined') {
+                this.points = new Array(this.data.length);
+            }
+            if (typeof this.points[x] === 'undefined') {
+                this.points[x] = new Array(this.data[x].length);
+            }
+
+            if (typeof this.points[x][y] === 'undefined') {
+                this.points[x][y] = [x, y];
+            }
+
+            return this.points[x][y];
+        }
+    }, {
+        key: 'run',
+        value: function run(src, callback) {
+            this.used = [];
+            this.data = src;
+
+            var x = void 0,
+                y = void 0;
+
+            for (y = 0; y < src.height; y++) {
+                for (x = 0; x < src.width; x++) {
+                    if (this.isFringe(x, y) && !this.isUsed(x, y)) {
+                        var fringe = this.tracing(x, y);
+                        callback(new _fringe2.default(fringe));
+                    }
+                }
+            }
+        }
+    }, {
+        key: 'tracing',
+        value: function tracing(x, y) {
+            var _this = this;
+
+            var directionsMap = this.directions;
+
+            x = Math.round(x);
+            y = Math.round(y);
+
+            var is4 = this.params.disable4point;
+
+            // сюда будем складывать найденные точки полосы
+            var fringe = [x + ':' + y];
+
+            // список координат которые надо проверить на наличие соседних точек полосы (вместо рекурсии)
+            var front = [this.getPoint(x, y)];
+
+            var _loop = function _loop() {
+                var frontParts = front.map(function (_ref) {
+                    var _ref2 = _slicedToArray(_ref, 2),
+                        x = _ref2[0],
+                        y = _ref2[1];
+
+                    var directions = directionsMap[is4 ? 0 : 1];
+                    var edge = [];
+                    directions.forEach(function (_ref3) {
+                        var _ref4 = _slicedToArray(_ref3, 2),
+                            dx = _ref4[0],
+                            dy = _ref4[1];
+
+                        var testX = x + dx;
+                        var testY = y + dy;
+
+                        if (_this.isFringe(testX, testY) && !_this.isUsed(testX, testY)) {
+                            edge.push([testX, testY]);
+                            _this.markUsed(testX, testY);
+                        }
+                    });
+                    return edge;
+                });
+
+                front = [];
+                var part = [];
+                frontParts.forEach(function (val) {
+                    front = front.concat(val);
+                    part = part.concat(val);
+                    if (val.length === 0 && part.length) {
+                        // Get center of front line
+                        var _part$Math$floor = _slicedToArray(part[Math.floor(part.length / 2)], 2),
+                            _x = _part$Math$floor[0],
+                            _y = _part$Math$floor[1];
+
+                        fringe.push(_x + ':' + _y);
+                        part = [];
+                    }
+                });
+
+                if (part.length > 0) {
+                    // Get center of front line
+                    var _part$Math$floor2 = _slicedToArray(part[Math.floor(part.length / 2)], 2),
+                        _x2 = _part$Math$floor2[0],
+                        _y2 = _part$Math$floor2[1];
+
+                    fringe.push(_x2 + ':' + _y2);
+                }
+
+                if (!_this.params.disable4point) {
+                    is4 = !is4;
+                }
+            };
+
+            do {
+                _loop();
+            } while (front.length > 0);
+
+            // sorting
+            if (fringe.length > 2) {
+                var _fringe$pop$split = fringe.pop().split(':');
+
+                var _fringe$pop$split2 = _slicedToArray(_fringe$pop$split, 2);
+
+                x = _fringe$pop$split2[0];
+                y = _fringe$pop$split2[1];
+
+                var sorted = [x + ':' + y];
+
+                do {
+                    fringe.sort(function (a, b) {
+                        var _a$split = a.split(':'),
+                            _a$split2 = _slicedToArray(_a$split, 2),
+                            ax = _a$split2[0],
+                            ay = _a$split2[1],
+                            _b$split = b.split(':'),
+                            _b$split2 = _slicedToArray(_b$split, 2),
+                            bx = _b$split2[0],
+                            by = _b$split2[1];
+
+                        return Math.abs(ax - x) + Math.abs(ay - y) - Math.abs(bx - x) - Math.abs(by - y);
+                    });
+
+                    var _fringe$shift$split = fringe.shift().split(':');
+
+                    var _fringe$shift$split2 = _slicedToArray(_fringe$shift$split, 2);
+
+                    x = _fringe$shift$split2[0];
+                    y = _fringe$shift$split2[1];
+
+                    sorted.push(x + ':' + y);
+                } while (fringe.length > 0);
+                return sorted;
+            }
+
+            return fringe;
+        }
+    }]);
+
+    return TracingWaveAction;
+}();
+
+/***/ }),
+/* 353 */
 /***/ (function(module, exports, __webpack_require__) {
 
 var __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_DEFINE_RESULT__;/*!
@@ -65346,7 +65780,7 @@ return jQuery;
 
 
 /***/ }),
-/* 353 */
+/* 354 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -65432,7 +65866,7 @@ var _point2 = _interopRequireDefault(_point);
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 /***/ }),
-/* 354 */
+/* 355 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -65488,14 +65922,14 @@ exports.default = function () {
     };
 };
 
-var _fringeCollection = __webpack_require__(355);
+var _fringeCollection = __webpack_require__(356);
 
 var _fringeCollection2 = _interopRequireDefault(_fringeCollection);
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 /***/ }),
-/* 355 */
+/* 356 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -65586,7 +66020,7 @@ var FringeCollectionModel = function () {
 exports.default = FringeCollectionModel;
 
 /***/ }),
-/* 356 */
+/* 357 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -65610,7 +66044,7 @@ exports.default = function () {
 };
 
 /***/ }),
-/* 357 */
+/* 358 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -65653,7 +66087,7 @@ function LayerCanvasDirective() {
 }
 
 /***/ }),
-/* 358 */
+/* 359 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -65680,12 +66114,15 @@ function LayerCanvasDirective() {
                     return element[0].width ? element[0].clientWidth / element[0].width : 0;
                 }
             };
+            element[0].oncontextmenu = function () {
+                return false;
+            };
         }
     };
 }
 
 /***/ }),
-/* 359 */
+/* 360 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -65724,7 +66161,7 @@ exports.default = function () {
 };
 
 /***/ }),
-/* 360 */
+/* 361 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
