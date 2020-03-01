@@ -1,0 +1,55 @@
+body {
+    width: 607px;
+    height: 500px;
+}
+
+.place {
+    position: relative;
+    display: block;
+    width: 240px;
+    height: auto;
+    float: left;
+}
+
+.play-item {
+    display: block;
+    cursor: hand;
+    margin: 5px;
+    padding: 10px;
+    border: 1px solid black;
+    width: 200px;
+    background: white;
+}
+
+.play-item:hover {
+    background: #dddddd;
+}
+
+.shadow {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 607px;
+    height: 500px;
+    background: #e0e0e0;
+    filter: alpha(Opacity=50);
+    -moz-opacity: 0.5;
+    -khtml-opacity: 0.5;
+    opacity: 0.5;
+}
+
+.success {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 607px;
+    height: 500px;
+}
+
+.success-text {
+    position: relative;
+    display: block;
+    top: 30px;
+    text-align: center;
+    font-size: 40px;
+}
